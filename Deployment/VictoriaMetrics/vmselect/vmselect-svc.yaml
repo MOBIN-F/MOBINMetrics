@@ -1,0 +1,14 @@
+kind: Service
+metadata:
+  labels:
+    victoriametrics.service: vmselect
+  name: vmselect
+  namespace: mobin-monitor
+spec:
+  ports:
+    - name: "8481"
+      port: 8481
+      targetPort: 8481
+  selector:
+    victoriametrics.service: vmselect
+  type: LoadBalancer

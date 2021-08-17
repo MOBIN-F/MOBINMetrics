@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vmstorage01
+  namespace: mobin-monitor
+spec:
+  serviceName: vmstorage01
+  replicas: 1
+  selector:
+    matchLabels:
+      victoriametrics.service: vmstorage01
+  template:
+    metadata:
+      labels:
+        victoriametrics.service: vmstorage01
+    spec:
+      volumes:
+      - name: strgdata
+        hostPath:
+          path: /data/vmstorage01
+      nodeSelector:
+        vmstroage01: vmstroage01
+      initContainers:
+      - name: close-tcp-timestamps
+        image: maven.mobin.com.cn:8084/docker.io/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c"]
+        args: ["sysctl -w net.ipv4.tcp_timestamps=0","sysctl -w net.ipv4.tcp_tw_recycle=0"]
+        securityContext:
+          privileged: true
+      containers:
+        - args:
+            - --retentionPeriod=1y
+            - --memory.allowedPercent=70
+            - --storageDataPath=/storage
+          image: maven.mobin.com.cn:8084/docker.io/victoriametrics/vmstorage:v1.51.0-cluster
+          name: vmstorage01
+          ports:
+            - containerPort: 8482
+            - containerPort: 8400
+            - containerPort: 8401
+          volumeMounts:
+            - mountPath: /storage
+              name: strgdata
+          resources:
+            requests:
+              memory: "40Gi"
+              cpu: "4"  #需要调整：vcores:=根据指标摄取速率/150K
+            limits:
+              memory: "60Gi"
+              cpu: "6"
+      restartPolicy: Always

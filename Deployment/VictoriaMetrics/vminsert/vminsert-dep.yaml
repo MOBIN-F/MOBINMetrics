@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    victoriametrics.service: vminsert
+  name: vminsert
+  namespace: mobin-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      victoriametrics.service: vminsert
+  template:
+    metadata:
+      labels:
+        victoriametrics.service: vminsert
+    spec:
+      initContainers:
+      - name: close-tcp-timestamps
+        image: maven.mobin.com.cn:8084/docker.io/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c"]
+        args: ["sysctl -w net.ipv4.tcp_timestamps=0","sysctl -w net.ipv4.tcp_tw_recycle=0"]
+        securityContext:
+          privileged: true
+      containers:
+        - args:
+            - --replicationFactor=3
+            - --storageNode=vmstorage01:8400  #支持配置多个storage实例
+            - --storageNode=vmstorage02:8400
+            - --storageNode=vmstorage03:8400
+            - --storageNode=vmstorage04:8400
+            - --storageNode=vmstorage05:8400
+            - --storageNode=vmstorage06:8400
+            - --insert.maxQueueDuration=5m0s
+            #- --maxConcurrentInserts=32
+          image: maven.mobin.com.cn:8084/docker.io/victoriametrics/vminsert:v1.51.0-cluster
+          name: vminsert
+          ports:
+            - containerPort: 8480
+          resources:
+            requests:
+              memory: "10Gi"
+              cpu: "4"
+            limits:
+              memory: "20Gi"
+              cpu: "4"
+      restartPolicy: Always

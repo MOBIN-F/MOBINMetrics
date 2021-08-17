@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafana-nas-plugins-pv
+  namespace: mobin-monitor
+  labels:
+    name: grafana-nas-plugins-pv
+    type: nfs
+spec:
+  nfs:
+    path: /Qvol02/mobin_id232604_xxx_prd/grafana-plugins
+    server: xx.x.x.x
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain

@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment  
+metadata:
+  name: grafana
+  namespace: mobin-monitor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      imagePullSecrets:
+      - name: mobin-registry-key
+      volumes:
+      - name: grafanaconfig
+        configMap:
+          name: grafana-config
+      - name: grafana-nas-plugins
+        persistentVolumeClaim:
+          claimName: grafana-nas-plugins-pvc
+      - name: grafana-nas-png
+        persistentVolumeClaim:
+          claimName: grafana-nas-png-pvc
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - x.x.x.x
+                - x.x.x.x
+                - x.x.x.x
+      securityContext:
+        runAsUser: 0
+      containers:
+      - name: grafana
+        image: grafana:grafana-7.0.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: grafana
+        #env:
+        #- name: GF_AUTH_PROXY_ENABLED
+        #  value: "true"
+        #- name: GF_AUTH_ANONYMOUS_ENABLED
+        #  value: "true"
+        #- name: GF_AUTH_ANONYMOUS_ORG_ROLE
+        #  value: Admin
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /api/health
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 30
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /api/health
+            port: 3000
+            scheme: HTTP
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 5
+            memory: 10Gi
+          requests:
+            cpu: 5
+            memory: 10Gi
+        volumeMounts:
+        - mountPath: /var/lib/grafana/plugins
+          name: grafana-nas-plugins
+        - mountPath: /var/lib/grafana/png
+          name: grafana-nas-png
+        - mountPath: /etc/grafana
+          name: grafanaconfig
+
+
+

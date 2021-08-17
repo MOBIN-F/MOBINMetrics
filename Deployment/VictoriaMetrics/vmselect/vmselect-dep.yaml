@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    victoriametrics.service: vmselect
+  name: vmselect
+  namespace: mobin-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      victoriametrics.service: vmselect
+  template:
+    metadata:
+      labels:
+        victoriametrics.service: vmselect
+    spec:
+      initContainers:
+      - name: close-tcp-timestamps
+        image: maven.mobin.com.cn:8084/docker.io/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c"]
+        args: ["sysctl -w net.ipv4.tcp_timestamps=0","sysctl -w net.ipv4.tcp_tw_recycle=0"]
+        securityContext:
+          privileged: true
+      containers:
+        - args:
+            - --cacheDataPath=/tmp/cache
+            - --storageNode=vmstorage01:8401
+            - --storageNode=vmstorage02:8401
+            - --storageNode=vmstorage03:8401
+            - --storageNode=vmstorage04:8401
+            - --storageNode=vmstorage05:8401
+            - --storageNode=vmstorage06:8401
+            - --search.logSlowQueryDuration=5s
+            - --dedup.minScrapeInterval=3ms
+            - --replicationFactor=3
+            - --search.maxQueryDuration=80h
+            - --search.maxPointsPerTimeseries=1000000000
+            #- ---search.maxPointsPerTimeseries=300000
+          image: maven.mobin.com.cn:8084/docker.io/victoriametrics/vmselect:v1.51.0-cluster
+          name: vmselect
+          ports:
+            - containerPort: 8481
+          resources:
+            requests:
+              memory: "10Gi"
+              cpu: "4"
+            limits:
+              memory: "15Gi"
+              cpu: "4"
+      restartPolicy: Always

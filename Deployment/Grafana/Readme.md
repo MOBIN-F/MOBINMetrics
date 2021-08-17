@@ -1,0 +1,1 @@
+1. grafna自身的元数据及会话信息存储在mysql中，而plugins及图片等存放在网络存储，如nas
